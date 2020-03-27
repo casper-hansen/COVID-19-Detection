@@ -51,4 +51,4 @@ while save_n_images > 0:
     new_finding.append(label)
 
 new_df = pd.DataFrame({'filename': new_filename, 'finding': new_finding})
-new_df.to_csv(save_folder + 'normal_xray_dataset.csv')
+new_df.to_csv('normal_xray_dataset.csv')
