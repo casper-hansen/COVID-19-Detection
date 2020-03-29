@@ -87,19 +87,26 @@ for i in range(len(new_images)):
     col_row_diff = len(image_cols_to_remove[i]) - len(image_rows_to_remove[i])
     row_col_diff = len(image_rows_to_remove[i]) - len(image_cols_to_remove[i])
     
+    img = new_images[i]
+    
     if col_row_diff > 0:
-        slice_size_bottom = int(col_row_diff/2)
-        slice_size_top = int(col_row_diff/2)
+        slice_size = int(col_row_diff/2)
         
-        img = new_images[i][:-slice_size_top]
-        img = img[slice_size_bottom:]
+        img = img[:-slice_size]
+        img = img[slice_size:]
         
         if img.shape[0] != img.shape[1]:
             img = img[:-1]
-        
-        if img.shape[0] == img.shape[1]:
-            adjusted_images.append(img)
             
     elif row_col_diff > 0:
-        pass
+        slice_size = int(row_col_diff/2)
+        
+        img = img[:,:-slice_size,:]
+        img = img[:,slice_size:,:]
+        
+        if img.shape[0] != img.shape[1]:
+            img = img[:,:-1,:]
+    
+    if img.shape[0] == img.shape[1]:
+        adjusted_images.append(img)
     
