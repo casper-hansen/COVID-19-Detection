@@ -51,13 +51,10 @@ for i, img in enumerate(images):
 
 new_images = []
 
-print(image_cols_to_remove)
-
 for i, img in enumerate(images):
     img = np.delete(img, image_rows_to_remove[i], axis=0)
     img = np.delete(img, image_cols_to_remove[i], axis=1)
-    print(img.shape)
     new_images.append(img)
 
-plt.imshow(new_images[0])
+plt.imshow(new_images[2])
 plt.show()
