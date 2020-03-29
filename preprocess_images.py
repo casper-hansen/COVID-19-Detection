@@ -33,6 +33,7 @@ for i, img in enumerate(images):
         if num_of_black_pixels > len(row)/2:
             rows_to_remove.append(j)
 
+    # good enough to only loop on one color channel (could be improved)
     for j, col in enumerate(img.T[0]):
         num_of_black_pixels = 0
         for k, pixel in enumerate(col):
@@ -69,5 +70,29 @@ for i, img in enumerate(images):
     img = np.delete(img, image_cols_to_remove[i], axis=1)
     new_images.append(img)
 
-plt.imshow(new_images[2])
-plt.show()
+adjusted_images = []
+
+for i in range(len(new_images)):
+    n_rows_removed = len(image_rows_to_remove[i])
+    n_cols_removed = len(image_cols_to_remove[i])
+    row_col_diff = n_rows_removed - n_cols_removed
+    col_row_diff = n_cols_removed - n_rows_removed
+    
+    if col_row_diff > 0:
+        slice_size_bottom = int(col_row_diff/3)
+        slice_size_top = int(col_row_diff/3)*2+1
+        
+        img = new_images[i][:-slice_size_top]
+        img = img[slice_size_bottom:]
+        
+        if img.shape[0] != img.shape[1]:
+            img = img[:-1]
+        
+        adjusted_images.append(img)
+            
+    elif row_col_diff > 0:
+        pass
+    
+    if adjusted_images[i].shape[0] != adjusted_images[i].shape[1]:
+        adjusted_images.pop()
+
