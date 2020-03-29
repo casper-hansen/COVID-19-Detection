@@ -33,16 +33,15 @@ for i, img in enumerate(images):
         if num_of_black_pixels > len(row)/2:
             rows_to_remove.append(j)
 
-    for transposed_img in img.T:
-        for j, col in enumerate(transposed_img):
-            num_of_black_pixels = 0
-            for k, pixel in enumerate(col):
-                avg = np.average(pixel)
-                if avg < 40:
-                    num_of_black_pixels += 1
-            
-            if num_of_black_pixels > len(col)/2:
-                cols_to_remove.append(j)
+    for j, col in enumerate(img.T[0]):
+        num_of_black_pixels = 0
+        for k, pixel in enumerate(col):
+            avg = np.average(pixel)
+            if avg < 40:
+                num_of_black_pixels += 1
+        
+        if num_of_black_pixels > len(col)/2:
+            cols_to_remove.append(j)
 
     image_rows_to_remove[i] = rows_to_remove
     image_cols_to_remove[i] = cols_to_remove
@@ -70,5 +69,5 @@ for i, img in enumerate(images):
     img = np.delete(img, image_cols_to_remove[i], axis=1)
     new_images.append(img)
 
-plt.imshow(new_images[0])
+plt.imshow(new_images[2])
 plt.show()
