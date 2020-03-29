@@ -73,10 +73,7 @@ for i, img in enumerate(images):
 adjusted_images = []
 
 for i in range(len(new_images)):
-    n_rows_removed = len(image_rows_to_remove[i])
-    n_cols_removed = len(image_cols_to_remove[i])
-    row_col_diff = n_rows_removed - n_cols_removed
-    col_row_diff = n_cols_removed - n_rows_removed
+    col_row_diff = len(image_cols_to_remove[i]) - len(image_rows_to_remove[i])
     
     if col_row_diff > 0:
         slice_size_bottom = int(col_row_diff/3)
@@ -90,9 +87,6 @@ for i in range(len(new_images)):
         
         adjusted_images.append(img)
             
-    elif row_col_diff > 0:
-        pass
-    
     if adjusted_images[i].shape[0] != adjusted_images[i].shape[1]:
         adjusted_images.pop()
 
