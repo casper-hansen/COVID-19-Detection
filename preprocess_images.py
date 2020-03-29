@@ -1,14 +1,12 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import cv2, os
+import cv2, time
 import numpy as np
-import random
 
 df = pd.read_csv('kaggle-pneumonia-jpg/stage_2_detailed_class_info.csv')
 image_folder = 'kaggle-pneumonia-jpg/stage_2_train_images_jpg/'
 
 df = df.loc[df['class'] == 'Normal']
-df = df.head(5)
 
 images = []
 labels = []
@@ -30,6 +28,7 @@ images = np.array(images)
 image_rows_to_remove = {}
 image_cols_to_remove = {}
 
+start = time.time()
 for i, img in enumerate(images):
     rows_to_remove = []
     cols_to_remove = []
@@ -57,6 +56,8 @@ for i, img in enumerate(images):
 
     image_rows_to_remove[i] = rows_to_remove
     image_cols_to_remove[i] = cols_to_remove
+    
+    print('image number {0}, time spent {1:2f}s'.format(i, time.time() - start))
 
 for key, arr in image_rows_to_remove.items():
     last_val = None
@@ -109,4 +110,25 @@ for i in range(len(new_images)):
     
     if img.shape[0] == img.shape[1]:
         adjusted_images.append(img)
+    else:
+        del labels[i]
+        del filenames[i]
+
+save_folder = 'normal_dataset/'
+
+new_filename = []
+new_finding = []
+
+for i in range(len(adjusted_images)):
+    image = images[i]
+    label = labels[i]
+    filename = filenames[i]
+
+    image = cv2.resize(image, (224, 224))
     
+    cv2.imwrite(save_folder + filename + '.jpg', image)
+    new_filename.append(filename + '.jpg')
+    new_finding.append(label)
+    
+new_df = pd.DataFrame({'filename': new_filename, 'finding': new_finding})
+new_df.to_csv('normal_xray_dataset.csv')
