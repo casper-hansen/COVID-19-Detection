@@ -4,15 +4,26 @@ import cv2, os
 import numpy as np
 import random
 
-folder = 'cropping_experiment/'
-images_names = ['1.jpg', '2.jpg', '3.jpg', '4.jpg']
+df = pd.read_csv('kaggle-pneumonia-jpg/stage_2_detailed_class_info.csv')
+image_folder = 'kaggle-pneumonia-jpg/stage_2_train_images_jpg/'
+
+df = df.loc[df['class'] == 'Normal']
+df = df.head(5)
 
 images = []
+labels = []
+filenames = []
 
-for img in images_names:
-    image = cv2.imread(folder + img)
+for index, row in df.iterrows():
+    image = cv2.imread(image_folder + row.patientId + '.jpg')
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     images.append(image)
+
+    label = row['class']
+    labels.append(label)
+    
+    filename = row.patientId
+    filenames.append(filename)
 
 images = np.array(images)
 
@@ -74,10 +85,11 @@ adjusted_images = []
 
 for i in range(len(new_images)):
     col_row_diff = len(image_cols_to_remove[i]) - len(image_rows_to_remove[i])
+    row_col_diff = len(image_rows_to_remove[i]) - len(image_cols_to_remove[i])
     
     if col_row_diff > 0:
-        slice_size_bottom = int(col_row_diff/3)
-        slice_size_top = int(col_row_diff/3)*2+1
+        slice_size_bottom = int(col_row_diff/2)
+        slice_size_top = int(col_row_diff/2)
         
         img = new_images[i][:-slice_size_top]
         img = img[slice_size_bottom:]
@@ -85,8 +97,9 @@ for i in range(len(new_images)):
         if img.shape[0] != img.shape[1]:
             img = img[:-1]
         
-        adjusted_images.append(img)
+        if img.shape[0] == img.shape[1]:
+            adjusted_images.append(img)
             
-    if adjusted_images[i].shape[0] != adjusted_images[i].shape[1]:
-        adjusted_images.pop()
-
+    elif row_col_diff > 0:
+        pass
+    
