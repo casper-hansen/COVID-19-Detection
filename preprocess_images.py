@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import cv2, time
+import cv2, time, os
 import numpy as np
 
 df = pd.read_csv('kaggle-pneumonia-jpg/stage_2_detailed_class_info.csv')
@@ -25,70 +25,53 @@ for index, row in df.iterrows():
 
 images = np.array(images)
 
-image_rows_to_remove = {}
-image_cols_to_remove = {}
+def get_black_pixel_indices(img):
+    rows_remove = []
+    cols_remove = []
 
-start = time.time()
-for i, img in enumerate(images):
-    rows_to_remove = []
-    cols_to_remove = []
+    for j, counter in enumerate(range(img.shape[0])):
+        row = img[counter]
+        # shift column dim to first dim, row dim to second dim
+        # acts like a 90 degree counterclock-wise rotation of image
+        col = img.transpose(1, 0, 2)[counter]
 
-    for j, row in enumerate(img):
-        num_of_black_pixels = 0
-        for k, pixel in enumerate(row):
-            avg = np.average(pixel)
-            if avg < 20:
-                num_of_black_pixels += 1
-        
-        if num_of_black_pixels > len(row)/2:
-            rows_to_remove.append(j)
-
-    # good enough to only loop on one color channel (could be improved)
-    for j, col in enumerate(img.T[0]):
-        num_of_black_pixels = 0
-        for k, pixel in enumerate(col):
-            avg = np.average(pixel)
-            if avg < 40:
-                num_of_black_pixels += 1
-        
-        if num_of_black_pixels > len(col)/2:
-            cols_to_remove.append(j)
-
-    image_rows_to_remove[i] = rows_to_remove
-    image_cols_to_remove[i] = cols_to_remove
-    
-    print('image number {0}, time spent {1:2f}s'.format(i, time.time() - start))
-
-for key, arr in image_rows_to_remove.items():
-    last_val = None
-    for i, value in enumerate(arr):
-        if 200 <= value <= 800:
-            del image_rows_to_remove[key][i]
-        else:
-            last_val = value
+        row_black_pixel_count = 0
+        col_black_pixel_count = 0
+        for selector in range(img.shape[1]):
+            row_pixel = row[selector]
+            col_pixel = col[selector]
             
-for key, arr in image_cols_to_remove.items():
-    last_val = None
-    for i, value in enumerate(arr):
+            if np.average(row_pixel) < 40:
+                row_black_pixel_count += 1
+            if np.average(col_pixel) < 40:
+                col_black_pixel_count += 1
+        
+        if row_black_pixel_count > len(row)/2:
+            rows_remove.append(j)
+        if col_black_pixel_count > len(col)/2:
+            cols_remove.append(j)
+
+    return rows_remove, cols_remove
+
+def remove_obstructing_indices(rows_remove, cols_remove):
+    for i, value in enumerate(rows_remove):
         if 200 <= value <= 800:
-            del image_cols_to_remove[key][i]
-        else:
-            last_val = value
+            del rows_remove[i]
+    for i, value in enumerate(cols_remove):
+        if 200 <= value <= 800:
+            del cols_remove[i]
 
-new_images = []
+    return rows_remove, cols_remove
 
-for i, img in enumerate(images):
-    img = np.delete(img, image_rows_to_remove[i], axis=0)
-    img = np.delete(img, image_cols_to_remove[i], axis=1)
-    new_images.append(img)
-
-adjusted_images = []
-
-for i in range(len(new_images)):
-    col_row_diff = len(image_cols_to_remove[i]) - len(image_rows_to_remove[i])
-    row_col_diff = len(image_rows_to_remove[i]) - len(image_cols_to_remove[i])
+def remove_black_pixels(img, rows_remove, cols_remove):
+    img = np.delete(img, rows_remove, axis=0)
+    img = np.delete(img, cols_remove, axis=1)
     
-    img = new_images[i]
+    return img
+
+def adjust_aspect_ratio(img, rows_remove, cols_remove):
+    col_row_diff = len(cols_remove) - len(rows_remove)
+    row_col_diff = len(rows_remove) - len(cols_remove)
     
     if col_row_diff > 0:
         slice_size = int(col_row_diff/2)
@@ -109,26 +92,32 @@ for i in range(len(new_images)):
             img = img[:,:-1,:]
     
     if img.shape[0] == img.shape[1]:
-        adjusted_images.append(img)
+        return img, True
     else:
-        del labels[i]
-        del filenames[i]
+        return img, False
 
 save_folder = 'normal_dataset/'
 
-new_filename = []
-new_finding = []
-
-for i in range(len(adjusted_images)):
-    image = images[i]
-    label = labels[i]
-    filename = filenames[i]
-
-    image = cv2.resize(image, (224, 224))
+start = time.time()
+for i, img in enumerate(images):
+    rows_remove, cols_remove = get_black_pixel_indices(img)
+    rows_remove, cols_remove = remove_obstructing_indices(rows_remove, cols_remove)
     
-    cv2.imwrite(save_folder + filename + '.jpg', image)
-    new_filename.append(filename + '.jpg')
-    new_finding.append(label)
+    new_img = remove_black_pixels(img, rows_remove, cols_remove)
+    adj_img, shape_match = adjust_aspect_ratio(new_img, rows_remove, cols_remove)
+
+    if shape_match:
+        resized_image = cv2.resize(adj_img, (224, 224))
     
-new_df = pd.DataFrame({'filename': new_filename, 'finding': new_finding})
-new_df.to_csv('normal_xray_dataset.csv')
+        label = labels[i]
+        name = filenames[i] + '.jpg'
+
+        cv2.imwrite(save_folder + name, resized_image)
+        new_df = pd.DataFrame({'filename': [name], 'finding': [label]})
+
+        if i == 0:
+            new_df.to_csv('normal_xray_dataset.csv')
+        else:
+            new_df.to_csv('normal_xray_dataset.csv', mode='a', header=False)
+
+    print('image number {0}, time spent {1:2f}s'.format(i+1, time.time() - start))
